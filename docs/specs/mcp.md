@@ -27,7 +27,8 @@ From npm (version 0.2.0 and later), the server command is:
 npx -y @devflowai/cli mcp
 ```
 
-or `devflow mcp` after `npm install -g @devflowai/cli`. For example, in `.mcp.json`:
+or `devflow mcp` after `npm install -g @devflowai/cli`. From 0.2.1 it is listed in the official MCP
+Registry as `io.github.mohamedyangui/devflow` (`server.json`). For example, in `.mcp.json`:
 
 ```json
 {

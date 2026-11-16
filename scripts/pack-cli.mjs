@@ -165,6 +165,8 @@ writeFileSync(path.join(staged, "README.md"), readme);
 writeJson(path.join(staged, "package.json"), {
   name: `${scope}/cli`,
   version,
+  // Lets the official MCP Registry check that this package belongs to the server in server.json.
+  mcpName: rootManifest.devflow.mcpName,
   description: rootManifest.description,
   keywords: ["ai", "coding-agent", "mcp", "testing", "verification", "developer-tools", "cli"],
   homepage: `${repository}#readme`,

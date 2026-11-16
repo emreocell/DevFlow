@@ -1,6 +1,6 @@
 {
   "name": "@devflowai/adapter-python",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "DevFlow AI language adapter for Python: uv, Poetry, Pipenv and pip projects, virtual environments, pytest, unittest, Ruff, flake8 and mypy.",
   "license": "Apache-2.0",
