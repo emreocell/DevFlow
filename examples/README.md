@@ -16,6 +16,9 @@ you can try DevFlow on.
 [`tasks/add-pagination.task.yaml`](tasks/add-pagination.task.yaml) (TASK-142) is written for
 the `backend` module of `fullstack-monorepo`.
 
+[`tasks/low-stock-report.task.md`](tasks/low-stock-report.task.md) is a small unit-tested change
+for the standard-library-only `python-unittest` inventory example.
+
 ## Trying `devflow verify`
 
 From a copy of an example (Java 21 or newer on PATH; for the JavaScript examples, run
