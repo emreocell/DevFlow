@@ -6,6 +6,14 @@ contain breaking changes. Each release is a git tag and a GitHub release
 ([ADR 0028](docs/adr/0028-source-releases.md)); from 0.2.0 it is also published on npm as
 `@devflowai/cli` ([ADR 0029](docs/adr/0029-npm-publication.md)).
 
+## [0.2.1] - 2026-11-16
+
+### Added
+
+- `server.json` describes DevFlow for the official MCP Registry as
+  `io.github.mohamedyangui/devflow`, started with `npx -y @devflowai/cli mcp`. The npm package
+  carries the matching `mcpName`, which the registry checks before listing the server.
+
 ## [0.2.0] - 2026-11-12
 
 ### Added
@@ -101,5 +109,6 @@ The first release. DevFlow runs from a source checkout of the `v0.1.0` tag.
   and the pytest JUnit path are tested with fixtures or stand-ins only. The
   [roadmap](docs/roadmap.md) says what has and has not been run for real.
 
+[0.2.1]: https://github.com/mohamedyangui/DevFlow/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mohamedyangui/DevFlow/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mohamedyangui/DevFlow/releases/tag/v0.1.0

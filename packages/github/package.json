@@ -1,6 +1,6 @@
 {
   "name": "@devflowai/github",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "DevFlow AI GitHub integration over the REST API: issues as task sources.",
   "license": "Apache-2.0",

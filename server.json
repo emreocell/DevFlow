@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mohamedyangui/devflow",
+  "title": "DevFlow AI",
+  "description": "Evidence-driven AI coding: plans, tests and red/green verification for every change.",
+  "repository": {
+    "url": "https://github.com/mohamedyangui/DevFlow",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/mohamedyangui/DevFlow#readme",
+  "version": "0.2.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@devflowai/cli",
+      "version": "0.2.1",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}

@@ -60,6 +60,12 @@ script, although DevFlow only reads their WebAssembly builds.
   a trusted publisher only for a package that exists, so the name was first taken by a
   placeholder version, `0.0.0-setup.0`, published by hand and then deprecated.
 - A version cannot be published twice: a broken release is fixed with a new patch version.
+- From 0.2.1 the package is also listed in the official MCP Registry as
+  `io.github.mohamedyangui/devflow`, described by `server.json` at the repository root. The
+  registry accepts the listing only when the npm package's `mcpName` matches that name, so
+  `scripts/pack-cli.mjs` copies it from `devflow.mcpName` in the root `package.json`. The
+  maintainer publishes the listing with `mcp-publisher` (GitHub login) after approving the
+  staged npm version; `server.json` carries the same version as the package.
 
 ## Alternatives considered
 
