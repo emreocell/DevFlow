@@ -2,10 +2,11 @@
 
 - **Status:** Schema implemented in Phase 1 (`ProjectConfig` in
   `packages/core/src/schemas/config.ts`, JSON Schema in
-  [`schemas/config.schema.json`](../../schemas/config.schema.json)). Phase 2 adds the
+  [`schemas/config.schema.json`](../../schemas/config.schema.json)). Phase 2 added the
   loader (`loadProjectConfig`: at most 256 KiB, UTF-8, read through the path guard, hashed
-  byte for byte, issues with line numbers) and `devflow trust`. `devflow init` is planned for
-  Phase 2.
+  byte for byte, issues with line numbers), `devflow trust`, and
+  [`devflow init`](cli.md#assist-and-test-workflows). The `init` command creates missing
+  configuration and project rules files, and adds `.devflow/runs/` to `.gitignore`.
 
 ## 1. Trust model
 
