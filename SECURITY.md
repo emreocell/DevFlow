@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-DevFlow AI is in early development and has no released versions yet. Security fixes are made
-on the main branch.
+DevFlow AI is in early development (`0.x`). Security fixes are made on the main branch and
+released as a new patch version of the latest release, published on npm as `@devflowai/cli`;
+older versions are not patched.
 
 ## Reporting a vulnerability
 
