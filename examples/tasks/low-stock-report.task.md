@@ -31,7 +31,7 @@ changing inventory.
   - Given the inventory contains `mug: 2`
   - When the low-stock query uses a threshold of `-1`
   - Then it raises `ValueError` and the mug level remains `2`
-- [ ] **AC-3**: Products at or above the requested threshold are omitted (covers: FR-1)
+- [ ] **AC-3**: Products above the requested threshold are omitted (covers: FR-1)
   - Given the known stock levels are `mug: 2` and `tea: 5`
   - When the low-stock query uses a threshold of `1`
   - Then it returns an empty result
