@@ -3,6 +3,13 @@
 Thank you for your interest. DevFlow AI is created and maintained by Mohamed Yangui. It is in
 early development; please open an issue to discuss larger changes before starting work.
 
+New here? Issues labelled
+[good first issue](https://github.com/mohamedyangui/DevFlow/labels/good%20first%20issue) are
+small and self-contained; comment on one to take it. Questions and ideas go to
+[Discussions](https://github.com/mohamedyangui/DevFlow/discussions), bugs and concrete
+proposals to the issue forms, and security problems to private reporting
+([SECURITY.md](SECURITY.md)).
+
 ## Setup
 
 - Node.js **22.13 or newer** for development (the published packages need 22.12+; the

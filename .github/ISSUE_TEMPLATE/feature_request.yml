@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an improvement or a new capability for DevFlow.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For open-ended ideas and questions, [Discussions](https://github.com/mohamedyangui/DevFlow/discussions)
+        may be a better place. Use this form for a concrete change.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What DevFlow should do. Commands, options or an example of the output help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve the problem, including workarounds you use now.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to work on this myself (see CONTRIBUTING.md).
