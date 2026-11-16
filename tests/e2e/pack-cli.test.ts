@@ -23,6 +23,7 @@ interface Staged {
   bundleDependencies: string[];
   scripts?: unknown;
   publishConfig: Record<string, unknown>;
+  mcpName?: string;
 }
 
 let manifest: Staged;
@@ -43,7 +44,10 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("scripts/pack-cli.mjs", () => {
-  const root = readJson("package.json") as { version: string; devflow: { npmScope: string } };
+  const root = readJson("package.json") as {
+    version: string;
+    devflow: { npmScope: string; mcpName: string };
+  };
   const scope = root.devflow.npmScope;
 
   it("stages one public package with the devflow command at the repository version", () => {
@@ -53,6 +57,11 @@ describe("scripts/pack-cli.mjs", () => {
     expect(manifest.bin).toEqual({ devflow: "./dist/bin.js" });
     expect(manifest.scripts).toBeUndefined();
     expect(manifest.publishConfig).toEqual({ access: "public", provenance: true });
+  });
+
+  it("carries the MCP Registry server name, which the registry checks against server.json", () => {
+    expect(manifest.mcpName).toBe(root.devflow.mcpName);
+    expect((readJson("server.json") as { name: string }).name).toBe(root.devflow.mcpName);
   });
 
   it("bundles every internal package the CLI needs and declares the bundled ones as dependencies", () => {

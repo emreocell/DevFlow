@@ -1,6 +1,6 @@
 {
   "name": "@devflowai/contracts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "DevFlow AI contract compatibility: OpenAPI and Protobuf parsers, built-in breaking-change rules, and optional oasdiff and buf integration.",
   "license": "Apache-2.0",

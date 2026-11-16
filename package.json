@@ -1,6 +1,6 @@
 {
   "name": "devflow-ai",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "DevFlow AI: a language-agnostic, evidence-driven AI software engineering workflow framework.",
   "license": "Apache-2.0",
@@ -20,6 +20,7 @@
   },
   "devflow": {
     "npmScope": "@devflowai",
+    "mcpName": "io.github.mohamedyangui/devflow",
     "packageBoundaries": {
       "core": [],
       "context": [

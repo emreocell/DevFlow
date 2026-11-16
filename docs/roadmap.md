@@ -325,4 +325,8 @@ Implemented:
   ([ADR 0029](adr/0029-npm-publication.md)), published from GitHub Actions with provenance.
   The staged package was installed from its tarball into a clean npm prefix and run on
   Windows (`--version`, `task validate`, an agent-mode run, the three tree-sitter grammars, an
-  MCP `initialize` and `tools/list`); the publish workflow has not run yet.
+  MCP `initialize` and `tools/list`). Published on 2026-11-13 by the workflow as a staged
+  version with provenance and approved on npmjs.com; a clean install from npm was checked.
+
+- `v0.2.1` (planned): the listing in the official MCP Registry (`server.json`, `mcpName` in
+  the npm package).

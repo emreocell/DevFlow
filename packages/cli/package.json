@@ -1,6 +1,6 @@
 {
   "name": "@devflowai/cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "DevFlow AI command-line interface (the `devflow` command).",
   "license": "Apache-2.0",

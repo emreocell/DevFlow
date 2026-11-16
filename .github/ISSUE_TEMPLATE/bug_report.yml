@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in DevFlow does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please **do not** report security issues here: use
+        [private vulnerability reporting](https://github.com/mohamedyangui/DevFlow/security/advisories/new)
+        (see SECURITY.md). Remove secrets, tokens and private code from anything you paste.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what DevFlow did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, ideally on a small public repository or one of the projects in `examples/`.
+      placeholder: |
+        1. npm install -g @devflowai/cli
+        2. devflow task validate examples/tasks/add-pagination.task.md
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The error message or the relevant part of the output (`--json` output helps). It is shown as code.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: DevFlow version
+      description: The output of `devflow --version`.
+      placeholder: 0.2.1
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How do you run DevFlow?
+      options:
+        - Command line (devflow ...)
+        - MCP server from a coding agent (devflow mcp)
+        - GitHub Action
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node.js version (`node --version`), and the MCP client or model provider if relevant.
+      placeholder: Windows 11, Node 22.13, Claude Code
+    validations:
+      required: true
