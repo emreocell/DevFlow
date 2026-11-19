@@ -688,3 +688,99 @@ describe("configuration, trust and refusals", () => {
     expect(report.stderr).toContain("a report is written when the run finishes");
   });
 });
+
+describe("devflow status --state", () => {
+  /** One completed, one waiting for plan approval and one cancelled run, in that order. */
+  async function runsInThreeStates(): Promise<{
+    root: string;
+    completed: string;
+    waiting: string;
+    cancelled: string;
+  }> {
+    const root = await workspace();
+    const extra: Partial<CliIo> = { createProvider: () => Promise.resolve(model()) };
+    const plan = async (): Promise<string> =>
+      String(json(await cli(root, [...PLAN, "--json"], extra)).runId);
+    const completed = await plan();
+    expect((await cli(root, ["approve", completed])).code).toBe(ExitCode.Success);
+    const waiting = await plan();
+    const cancelled = await plan();
+    expect((await cli(root, ["cancel", cancelled])).code).toBe(ExitCode.Success);
+    return { root, completed, waiting, cancelled };
+  }
+
+  function listedIds(result: Result): string[] {
+    return result.stdout
+      .split("\n")
+      .filter((line) => /^\d{4}-\d{2}-\d{2}T/.test(line))
+      .map((line) => line.split(/\s+/)[0] ?? "");
+  }
+
+  it("keeps only the runs in the given state, in text and JSON", async () => {
+    const { root, waiting } = await runsInThreeStates();
+    const text = await cli(root, ["status", "--state", "AWAITING_PLAN_APPROVAL"]);
+    expect(text.code).toBe(ExitCode.Success);
+    expect(listedIds(text)).toEqual([waiting]);
+
+    const result = await cli(root, ["status", "--state", "AWAITING_PLAN_APPROVAL", "--json"]);
+    const runs = json(result).runs as { id: string; state: string }[];
+    expect(runs.map((run) => [run.id, run.state])).toEqual([[waiting, "AWAITING_PLAN_APPROVAL"]]);
+  });
+
+  it("accepts --state more than once", async () => {
+    const { root, completed, cancelled } = await runsInThreeStates();
+    const text = await cli(root, ["status", "--state", "COMPLETED", "--state", "CANCELLED"]);
+    expect(listedIds(text)).toEqual([completed, cancelled]);
+    const result = await cli(root, [
+      "status",
+      "--state",
+      "COMPLETED",
+      "--state",
+      "CANCELLED",
+      "--json",
+    ]);
+    expect((json(result).runs as { id: string }[]).map((run) => run.id)).toEqual([
+      completed,
+      cancelled,
+    ]);
+  });
+
+  it("lists every run without --state", async () => {
+    const { root, completed, waiting, cancelled } = await runsInThreeStates();
+    expect(listedIds(await cli(root, ["status"]))).toEqual([completed, waiting, cancelled]);
+  });
+
+  it("says so when no run is in the given state", async () => {
+    const { root } = await runsInThreeStates();
+    const text = await cli(root, ["status", "--state", "FAILED"]);
+    expect(text.code).toBe(ExitCode.Success);
+    expect(text.stdout).toBe("No runs in state FAILED.\n");
+    const result = await cli(root, ["status", "--state", "FAILED", "--json"]);
+    expect(json(result)).toEqual({ runs: [] });
+  });
+
+  it("refuses an unknown state and lists the valid ones (exit 2)", async () => {
+    const { root } = await runsInThreeStates();
+    const text = await cli(root, ["status", "--state", "COMPLETED", "--state", "BOGUS"]);
+    expect(text.code).toBe(ExitCode.UsageError);
+    expect(text.stdout).toBe("");
+    expect(text.stderr).toContain('unknown state "BOGUS"');
+    expect(text.stderr).toContain("OPTIONS_INVALID");
+    for (const state of ["AWAITING_PLAN_APPROVAL", "COMPLETED", "FAILED", "CANCELLED"]) {
+      expect(text.stderr).toContain(state);
+    }
+    const result = await cli(root, ["status", "--state", "bogus", "--json"]);
+    expect(result.code).toBe(ExitCode.UsageError);
+    expect(json(result)).toMatchObject({ error: { code: "OPTIONS_INVALID" } });
+  });
+
+  it("refuses --state together with a run id (exit 2)", async () => {
+    const { root, completed } = await runsInThreeStates();
+    const result = await cli(root, ["status", completed, "--state", "COMPLETED"]);
+    expect(result.code).toBe(ExitCode.UsageError);
+    expect(result.stderr).toContain("cannot be used together with a run id");
+    expect(result.stdout).toBe("");
+    // Without --state the run id still works.
+    expect((await cli(root, ["status", completed])).code).toBe(ExitCode.Success);
+  });
+});

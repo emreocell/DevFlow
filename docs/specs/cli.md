@@ -293,7 +293,7 @@ devflow reject  <run> (--feedback <text> | --feedback-file <file>) [model option
 devflow answer  <run> (--answer <id>=<text> ... | --file <answers.yaml>) [model options]
 devflow resume  <run> [model options] [--allow <fingerprint> ...] [--backend local|container]
 devflow cancel  <run> [--reason <text>] [--trace <targets>] [--json]
-devflow status  [run] [--json]
+devflow status  [run | --state <state> ...] [--json]
 devflow report  <run> [--json] [--publish [comment|check]]
 devflow pr create <run> [--repo <owner/name>] [--base <branch>] [--title <text>] [--yes] [--json]
 ```
@@ -518,7 +518,12 @@ dryRun: true, wouldCreate, wouldKeep, gitignore, config }`, where `gitignore` is
 - **`resume`** continues an interrupted run from its current step. `--max-*` raise the run's
   limits, `--model` and `--provider` replace them. A waiting or finished run is shown unchanged.
 - **`status`** lists the runs, oldest first, or shows one run with its state, settings, usage,
-  warnings and next step. **`report`** prints `report.md` (or `report.json` with `--json`) of a
+  warnings and next step. `--state <state>` keeps only the runs in that state, in text and JSON
+  output; repeat it to match several states (`--state FAILED --state CANCELLED`). The states are
+  the workflow states, for example `AWAITING_PLAN_APPROVAL`, `COMPLETED`, `FAILED` and
+  `CANCELLED`. An unknown state, or `--state` together with a run id, is a usage error
+  (`OPTIONS_INVALID`, exit 2); the message for an unknown state lists the valid states.
+  **`report`** prints `report.md` (or `report.json` with `--json`) of a
   finished run, and exits 1 for a run that has not finished; `--publish` sends it to its pull
   request (see `review --pr`).
 - Progress lines are written to stderr; with `--json`, stdout holds one JSON document:

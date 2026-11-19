@@ -5,6 +5,7 @@ import {
   ErrorCode,
   type ExecutionBackendKind,
   type WorkflowMode,
+  WorkflowState,
   isDevflowError,
   isTerminalState,
 } from "@devflowai/core";
@@ -491,13 +492,29 @@ export async function cancelCommand(
 /** `devflow status [run]`: list runs, or show one. */
 export async function statusCommand(
   runId: string | undefined,
-  options: { json: boolean },
+  options: { json: boolean; states?: readonly string[] | undefined },
   io: CliIo,
 ): Promise<ExitCode> {
   return guarded(io, options.json, async () => {
+    const states = options.states ?? [];
+    const unknown = states.filter((state) => !WorkflowState.safeParse(state).success);
+    if (unknown.length > 0) {
+      throw new DevflowError(
+        ErrorCode.OptionsInvalid,
+        `unknown state ${unknown.map((state) => `"${state.slice(0, 80)}"`).join(", ")}; ` +
+          `valid states: ${WorkflowState.options.join(", ")}`,
+      );
+    }
+    if (runId !== undefined && states.length > 0) {
+      throw new DevflowError(
+        ErrorCode.OptionsInvalid,
+        "--state filters the run list; it cannot be used together with a run id",
+      );
+    }
     const workspace = await openWorkspace(io);
     if (runId === undefined) {
-      const runs = await listRuns(workspace.root);
+      const all = await listRuns(workspace.root);
+      const runs = states.length === 0 ? all : all.filter((run) => states.includes(run.state));
       if (options.json) {
         writeJson(io, {
           runs: runs.map((run) => ({
@@ -510,6 +527,9 @@ export async function statusCommand(
             updatedAt: run.updatedAt,
           })),
         });
+      } else if (runs.length === 0 && all.length > 0) {
+        io.stdout.write(`No runs in state ${states.join(" or ")}.
+`);
       } else if (runs.length === 0) {
         io.stdout.write(
           "No runs in this workspace. Start one with devflow analyze, devflow plan or devflow test.\n",
