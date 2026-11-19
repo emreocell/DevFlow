@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PathGuard, isDevflowError } from "@devflowai/core";
 import { ExitCode } from "../exit-codes.js";
@@ -72,12 +72,25 @@ interface InitResult {
   readonly gitignore: "added" | "present";
 }
 
+/** What `devflow init --dry-run` reports: the same decisions, nothing written. */
+interface InitDryRunResult {
+  readonly workspace: string;
+  readonly dryRun: true;
+  readonly wouldCreate: string[];
+  readonly wouldKeep: string[];
+  readonly gitignore: "would-add" | "present";
+  /** The configuration that would be written; absent when the file already exists. */
+  readonly config?: string;
+}
+
 /**
  * `devflow init`: writes `.devflow/config.yaml` and a rules template when they do not exist,
- * and adds `.devflow/runs/` to `.gitignore`. Existing files are never overwritten.
+ * and adds `.devflow/runs/` to `.gitignore`. Existing files are never overwritten. With
+ * `dryRun` nothing is written (not even the `.devflow` directory): it only reports what would
+ * be created, kept or added.
  */
 export async function initCommand(
-  options: { json: boolean; provider?: InitProvider },
+  options: { json: boolean; provider?: InitProvider; dryRun?: boolean },
   io: CliIo,
 ): Promise<ExitCode> {
   const provider = options.provider ?? "anthropic";
@@ -89,6 +102,7 @@ export async function initCommand(
     io.stderr.write(`devflow: ${error.message} [${error.code}]\n`);
     return ExitCode.UsageError;
   }
+  if (options.dryRun === true) return dryRunInit(root, provider, options.json, io);
   const created: string[] = [];
   const kept: string[] = [];
   for (const [relative, content] of [
@@ -107,19 +121,8 @@ export async function initCommand(
   }
 
   const gitignore = path.join(root, ".gitignore");
-  let current = "";
-  try {
-    current = await readFile(gitignore, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-  const present = current
-    .split(/\r?\n/)
-    .some((line) =>
-      [".devflow/runs/", ".devflow/runs", "/.devflow/runs/", ".devflow/", ".devflow"].includes(
-        line.trim(),
-      ),
-    );
+  const current = await readGitignore(gitignore);
+  const present = ignoresRuns(current);
   if (!present) {
     const separator = current === "" || current.endsWith("\n") ? "" : "\n";
     await writeFile(gitignore, `${current}${separator}${GITIGNORE_ENTRY}\n`, "utf8");
@@ -155,6 +158,81 @@ export async function initCommand(
           "  3. Analyse or plan a task: devflow plan --task <file>",
         ]),
   );
+  io.stdout.write(`${out.join("\n")}\n`);
+  return ExitCode.Success;
+}
+
+async function readGitignore(file: string): Promise<string> {
+  try {
+    return await readFile(file, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return "";
+  }
+}
+
+function ignoresRuns(gitignore: string): boolean {
+  return gitignore
+    .split(/\r?\n/)
+    .some((line) =>
+      [".devflow/runs/", ".devflow/runs", "/.devflow/runs/", ".devflow/", ".devflow"].includes(
+        line.trim(),
+      ),
+    );
+}
+
+async function exists(file: string): Promise<boolean> {
+  try {
+    await access(file);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return false;
+  }
+}
+
+/** `devflow init --dry-run`: reports what `init` would do and writes nothing. */
+async function dryRunInit(
+  root: string,
+  provider: InitProvider,
+  json: boolean,
+  io: CliIo,
+): Promise<ExitCode> {
+  const wouldCreate: string[] = [];
+  const wouldKeep: string[] = [];
+  for (const relative of [".devflow/config.yaml", ".devflow/rules/project.md"]) {
+    const present = await exists(path.join(root, ...relative.split("/")));
+    (present ? wouldKeep : wouldCreate).push(relative);
+  }
+  const ignored = ignoresRuns(await readGitignore(path.join(root, ".gitignore")));
+  const config = wouldCreate.includes(".devflow/config.yaml")
+    ? configTemplate(provider)
+    : undefined;
+  const result: InitDryRunResult = {
+    workspace: root,
+    dryRun: true,
+    wouldCreate,
+    wouldKeep,
+    gitignore: ignored ? "present" : "would-add",
+    ...(config === undefined ? {} : { config }),
+  };
+
+  if (json) {
+    io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return ExitCode.Success;
+  }
+  const c = colorsFor(io.stdout, io.env);
+  const out = [`${c.bold("Workspace:")} ${root}`, c.dim("Dry run: nothing is written.")];
+  for (const file of wouldCreate) out.push(`  ${c.green("would create")}  ${file}`);
+  for (const file of wouldKeep) out.push(`  ${c.dim("would keep")}    ${file} (already exists)`);
+  out.push(
+    ignored
+      ? `  ${c.dim("already ignored")}  .gitignore (${GITIGNORE_ENTRY})`
+      : `  ${c.green("would add")}  ${GITIGNORE_ENTRY} to .gitignore`,
+  );
+  if (config !== undefined) {
+    out.push("", c.bold(".devflow/config.yaml would contain:"), "", config.trimEnd());
+  }
   io.stdout.write(`${out.join("\n")}\n`);
   return ExitCode.Success;
 }
