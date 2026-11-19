@@ -259,7 +259,7 @@ hexadecimal characters).
 ### Assist and test workflows
 
 ```text
-devflow init [--provider anthropic|openai|agent] [--json]
+devflow init [--provider anthropic|openai|agent] [--dry-run] [--json]
 devflow analyze <task source> [model options]
 devflow plan    <task source> [model options]
 devflow test    <task source> [model options] [--allow <fingerprint> ...] [--backend local|container]
@@ -310,6 +310,12 @@ acceptance criterion is reported as passed.
 - **`init`** writes `.devflow/config.yaml` (with comments) and `.devflow/rules/project.md`
   when they do not exist, and adds `.devflow/runs/` to `.gitignore`. Existing files are never
   overwritten. The configuration is untrusted until `devflow trust`.
+  With **`--dry-run`** it writes nothing (not even the `.devflow` directory) and reports each
+  file as `would create` or `would keep (already exists)`, and `.gitignore` as `would add
+.devflow/runs/` or `already ignored`. It also prints the configuration that would be
+  written, unless `.devflow/config.yaml` already exists. With `--json` it prints `{ workspace,
+dryRun: true, wouldCreate, wouldKeep, gitignore, config }`, where `gitignore` is
+  `would-add` or `present` and `config` is left out when the file already exists.
 - **`analyze`** loads the context and analyses the requirements; it completes after the
   analysis. The analysis lists edge cases (with the acceptance criteria that cover them),
   contradictions between requirements, criteria and constraints, and dependencies on other

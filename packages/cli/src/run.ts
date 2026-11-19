@@ -239,9 +239,17 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<ExitCo
         .choices([...INIT_PROVIDERS])
         .default("anthropic"),
     )
+    .option("--dry-run", "show what would be written, without writing anything")
     .option("--json", "print a machine-readable result")
-    .action(async (options: { json?: boolean; provider: InitProvider }) => {
-      exitCode = await initCommand({ json: options.json === true, provider: options.provider }, io);
+    .action(async (options: { json?: boolean; provider: InitProvider; dryRun?: boolean }) => {
+      exitCode = await initCommand(
+        {
+          json: options.json === true,
+          provider: options.provider,
+          dryRun: options.dryRun === true,
+        },
+        io,
+      );
     });
 
   for (const goal of ["analyze", "plan"] as const) {
