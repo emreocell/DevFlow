@@ -138,6 +138,68 @@ describe("devflow task validate", () => {
     });
   });
 
+  it("validates several files: one block each, a summary line, worst exit code", async () => {
+    const result = await run(["task", "validate", "warnings.yaml", "invalid.yaml"], dir);
+    expect(result.code).toBe(ExitCode.Failure);
+    expect(result.stdout).toContain("Task file: warnings.yaml");
+    expect(result.stdout).toContain("Result: VALID (2 warnings)");
+    expect(result.stdout).toContain("Task file: invalid.yaml");
+    expect(result.stdout).toContain("Result: INVALID (1 error, 1 warning)");
+    expect(result.stdout.trimEnd().split("\n").at(-1)).toBe("2 files: 1 valid, 1 invalid");
+  });
+
+  it("summarises several valid files and exits 0", async () => {
+    const result = await run([
+      "task",
+      "validate",
+      "examples/tasks/add-pagination.task.yaml",
+      "examples/tasks/export-orders-csv.task.json",
+    ]);
+    expect(result.code).toBe(ExitCode.Success);
+    expect(result.stdout.trimEnd().split("\n").at(-1)).toBe("2 files: 2 valid, 0 invalid");
+  });
+
+  it("applies --strict to every file", async () => {
+    const lenient = await run(["task", "validate", "warnings.yaml", "warnings.yaml"], dir);
+    expect(lenient.code).toBe(ExitCode.Success);
+    const strict = await run(
+      ["task", "validate", "--strict", "warnings.yaml", "warnings.yaml"],
+      dir,
+    );
+    expect(strict.code).toBe(ExitCode.Failure);
+    expect(strict.stdout.trimEnd().split("\n").at(-1)).toBe("2 files: 0 valid, 2 invalid");
+  });
+
+  it("prints { files: [...] } with --json for several files", async () => {
+    const result = await run(["task", "validate", "--json", "warnings.yaml", "invalid.yaml"], dir);
+    expect(result.code).toBe(ExitCode.Failure);
+    const output = JSON.parse(result.stdout) as { files: Record<string, unknown>[] };
+    expect(Object.keys(output)).toEqual(["files"]);
+    expect(output.files).toHaveLength(2);
+    expect(output.files[0]).toMatchObject({ file: "warnings.yaml", valid: true, warningCount: 2 });
+    expect(output.files[1]).toMatchObject({ file: "invalid.yaml", valid: false, errorCount: 1 });
+  });
+
+  it("keeps the single-file --json output unchanged (no files wrapper)", async () => {
+    const result = await run(["task", "validate", "--json", "warnings.yaml"], dir);
+    const output = JSON.parse(result.stdout) as Record<string, unknown>;
+    expect(output).toMatchObject({ file: "warnings.yaml", valid: true });
+    expect(output).not.toHaveProperty("files");
+  });
+
+  it("exits 2 when any of several files is unusable and still reports the others", async () => {
+    const human = await run(["task", "validate", "warnings.yaml", "missing.yaml"], dir);
+    expect(human.code).toBe(ExitCode.UsageError);
+    expect(human.stdout).toContain("Task file: warnings.yaml");
+    expect(human.stderr).toContain("TASK_FILE_NOT_FOUND");
+    expect(human.stdout.trimEnd().split("\n").at(-1)).toBe("2 files: 1 valid, 1 invalid");
+
+    const json = await run(["task", "validate", "--json", "warnings.yaml", "missing.yaml"], dir);
+    expect(json.code).toBe(ExitCode.UsageError);
+    const output = JSON.parse(json.stdout) as { files: Record<string, unknown>[] };
+    expect(output.files[1]).toMatchObject({ valid: false, error: { code: "TASK_FILE_NOT_FOUND" } });
+  });
+
   it("does not emit color codes when output is not a terminal", async () => {
     const result = await run(["task", "validate", "invalid.yaml"], dir);
     // eslint-disable-next-line no-control-regex

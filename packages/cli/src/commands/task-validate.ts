@@ -14,27 +14,75 @@ export interface TaskValidateOptions {
   readonly strict: boolean;
 }
 
-/** `devflow task validate <file>`: parse, normalize and lint a task file. */
+/** The result of validating one file, ready to be printed. */
+interface FileOutcome {
+  readonly code: ExitCode;
+  readonly json: Record<string, unknown>;
+  /** Human report for stdout, or the one-line message for stderr when the file is unusable. */
+  readonly stdout?: string;
+  readonly stderr?: string;
+}
+
+/**
+ * `devflow task validate <file...>`: parse, normalize and lint one or more task files.
+ *
+ * With one file the output is exactly what it was before multiple files were accepted. With
+ * several, the human output is one block per file followed by a summary line, `--json` prints
+ * `{ files: [...] }`, and the exit code is the worst of the individual results.
+ */
 export async function taskValidateCommand(
-  file: string,
+  files: readonly string[],
   options: TaskValidateOptions,
   io: CliIo,
 ): Promise<ExitCode> {
+  const outcomes: FileOutcome[] = [];
+  for (const file of files) outcomes.push(await validateFile(file, options, io));
+  let code: ExitCode = ExitCode.Success;
+  for (const outcome of outcomes) if (outcome.code > code) code = outcome.code;
+
+  if (files.length === 1) {
+    const [only] = outcomes;
+    if (only !== undefined) {
+      if (options.json) {
+        writeJson(io, only.json);
+      } else {
+        if (only.stdout !== undefined) io.stdout.write(only.stdout);
+        if (only.stderr !== undefined) io.stderr.write(only.stderr);
+      }
+    }
+    return code;
+  }
+
+  if (options.json) {
+    writeJson(io, { files: outcomes.map((outcome) => outcome.json) });
+    return code;
+  }
+  const valid = outcomes.filter((outcome) => outcome.code === ExitCode.Success).length;
+  for (const outcome of outcomes) {
+    if (outcome.stdout !== undefined) io.stdout.write(`${outcome.stdout}\n`);
+    if (outcome.stderr !== undefined) io.stderr.write(outcome.stderr);
+  }
+  io.stdout.write(
+    `${plural(outcomes.length, "file")}: ${valid} valid, ${outcomes.length - valid} invalid\n`,
+  );
+  return code;
+}
+
+async function validateFile(
+  file: string,
+  options: TaskValidateOptions,
+  io: CliIo,
+): Promise<FileOutcome> {
   let loaded: LoadedTask;
   try {
     loaded = await loadTaskFile(file, { cwd: io.cwd });
   } catch (error) {
     if (!isDevflowError(error)) throw error;
-    if (options.json) {
-      writeJson(io, {
-        file,
-        valid: false,
-        error: { code: error.code, message: error.message },
-      });
-    } else {
-      io.stderr.write(`devflow: ${error.message} [${error.code}]\n`);
-    }
-    return ExitCode.UsageError;
+    return {
+      code: ExitCode.UsageError,
+      json: { file, valid: false, error: { code: error.code, message: error.message } },
+      stderr: `devflow: ${error.message} [${error.code}]\n`,
+    };
   }
 
   const errors = loaded.issues.filter((issue) => issue.severity === "error");
@@ -42,8 +90,9 @@ export async function taskValidateCommand(
   const strictFailure = options.strict && warnings.length > 0;
   const valid = loaded.valid && !strictFailure;
 
-  if (options.json) {
-    writeJson(io, {
+  return {
+    code: valid ? ExitCode.Success : ExitCode.Failure,
+    json: {
       file: loaded.contract?.source.ref ?? file,
       format: loaded.format,
       valid,
@@ -52,11 +101,9 @@ export async function taskValidateCommand(
       warningCount: warnings.length,
       issues: loaded.issues.map((issue) => ({ ...issue, location: formatIssuePath(issue.path) })),
       task: loaded.contract ?? null,
-    });
-  } else {
-    renderHuman(io, file, loaded, { valid, strictFailure, errors, warnings });
-  }
-  return valid ? ExitCode.Success : ExitCode.Failure;
+    },
+    stdout: renderHuman(io, file, loaded, { valid, strictFailure, errors, warnings }),
+  };
 }
 
 function renderHuman(
@@ -69,7 +116,7 @@ function renderHuman(
     errors: readonly ValidationIssue[];
     warnings: readonly ValidationIssue[];
   },
-): void {
+): string {
   const c = colorsFor(io.stdout, io.env);
   const out: string[] = [];
   out.push(`${c.bold("Task file:")} ${loaded.contract?.source.ref ?? file} (${loaded.format})`);
@@ -96,7 +143,7 @@ function renderHuman(
   } else {
     out.push(`${c.bold("Result:")} ${c.red("INVALID")} (${counts})`);
   }
-  io.stdout.write(`${out.join("\n")}\n`);
+  return `${out.join("\n")}\n`;
 }
 
 function renderIssue(issue: ValidationIssue, c: Colors): string[] {
