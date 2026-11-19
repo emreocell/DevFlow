@@ -53,12 +53,12 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<ExitCo
   task
     .command("validate")
     .description("validate a task file (YAML, JSON or Markdown) and report problems")
-    .argument("<file>", "path to the task file")
+    .argument("<files...>", "path to a task file; several files are validated in turn")
     .option("--json", "print a machine-readable result")
     .option("--strict", "treat warnings as errors")
-    .action(async (file: string, options: { json?: boolean; strict?: boolean }) => {
+    .action(async (files: string[], options: { json?: boolean; strict?: boolean }) => {
       exitCode = await taskValidateCommand(
-        file,
+        files,
         { json: options.json === true, strict: options.strict === true },
         io,
       );

@@ -44,7 +44,7 @@ dependencies are not installed): nothing negative is known about the code.
 
 ## 3. Implemented commands
 
-### `devflow task validate <file> [--json] [--strict]`
+### `devflow task validate <file...> [--json] [--strict]`
 
 Parses, normalizes and lints a task file (YAML, JSON or Markdown). See the
 [task contract spec](task-contract.md) for the rules and issue codes.
@@ -59,6 +59,13 @@ Parses, normalizes and lints a task file (YAML, JSON or Markdown). See the
   `{ file, valid: false, error: { code, message } }`, exit 2.
 - Colour is used only on a TTY and is disabled by `NO_COLOR` or `TERM=dumb`; `FORCE_COLOR`
   enables it.
+- **Several files** (for example `devflow task validate tasks/*.task.md`) are validated in the
+  order given. With one file the output is exactly as described above. With several:
+  the human output is one block per file, each as for a single file, followed by a summary
+  line such as `3 files: 2 valid, 1 invalid` (a file that cannot be used counts as invalid);
+  `--json` prints `{ "files": [ ... ] }` with one result per file, each in the single-file shape
+  above (including `{ file, valid: false, error }` for an unusable file); the exit code is the
+  worst of the individual results (0, then 1, then 2); `--strict` applies to every file.
 
 Example:
 
@@ -79,6 +86,19 @@ error    TASK_SCHEMA  line 12  acceptanceCriteria[1].statement
          Invalid input: expected string, received number
 
 Result: INVALID (1 error)
+```
+
+```text
+$ devflow task validate examples/tasks/add-pagination.task.yaml broken.task.yaml
+Task file: examples/tasks/add-pagination.task.yaml (yaml)
+...
+Result: VALID
+
+Task file: broken.task.yaml (yaml)
+...
+Result: INVALID (1 error)
+
+2 files: 1 valid, 1 invalid
 ```
 
 ### `devflow trust`
