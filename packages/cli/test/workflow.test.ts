@@ -688,3 +688,82 @@ describe("configuration, trust and refusals", () => {
     expect(report.stderr).toContain("a report is written when the run finishes");
   });
 });
+
+describe("devflow status run list", () => {
+  /** Plans `count` runs, then sets their `updatedAt` so that the newest is not the last one. */
+  async function runsWithUpdateTimes(count: number): Promise<{ root: string; byAge: string[] }> {
+    const root = await workspace();
+    const extra: Partial<CliIo> = { createProvider: () => Promise.resolve(model()) };
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      ids.push(String(json(await cli(root, [...PLAN, "--json"], extra)).runId));
+    }
+    // Directory order is ids[0], ids[1], ids[2]...; the update times run the other way round
+    // for the first two, and the last one is in the middle.
+    const times = ids.map(
+      (_, i) => new Date(Date.UTC(2026, 0, 10 + (i === 0 ? count : i === 1 ? 0 : 1))),
+    );
+    for (const [i, id] of ids.entries()) {
+      const file = path.join(root, ".devflow", "runs", id, "run.json");
+      const record = JSON.parse(await readFile(file, "utf8")) as Record<string, unknown>;
+      record.updatedAt = times[i]?.toISOString();
+      await writeFile(file, JSON.stringify(record, null, 2));
+    }
+    const byAge = ids
+      .map((id, i) => ({ id, time: times[i]?.getTime() ?? 0 }))
+      .sort((a, b) => b.time - a.time)
+      .map((entry) => entry.id);
+    return { root, byAge };
+  }
+
+  function listedIds(result: Result): string[] {
+    return result.stdout
+      .split("\n")
+      .filter((line) => /^\d{4}-\d{2}-\d{2}T/.test(line))
+      .map((line) => line.split(/\s+/)[0] ?? "");
+  }
+
+  it("lists the runs newest first, in text and JSON", async () => {
+    const { root, byAge } = await runsWithUpdateTimes(3);
+    expect(byAge).toHaveLength(3);
+    const text = await cli(root, ["status"]);
+    expect(text.code).toBe(ExitCode.Success);
+    expect(listedIds(text)).toEqual(byAge);
+    expect(text.stdout).not.toContain("not shown");
+    const listed = json(await cli(root, ["status", "--json"])).runs as { id: string }[];
+    expect(listed.map((run) => run.id)).toEqual(byAge);
+  });
+
+  it("--limit keeps the newest runs and says how many were left out", async () => {
+    const { root, byAge } = await runsWithUpdateTimes(3);
+    const two = await cli(root, ["status", "--limit", "2"]);
+    expect(two.code).toBe(ExitCode.Success);
+    expect(listedIds(two)).toEqual(byAge.slice(0, 2));
+    expect(two.stdout).toContain("(1 older run not shown; use --limit to see more)");
+
+    const one = await cli(root, ["status", "--limit", "1"]);
+    expect(listedIds(one)).toEqual(byAge.slice(0, 1));
+    expect(one.stdout).toContain("(2 older runs not shown; use --limit to see more)");
+
+    const json2 = json(await cli(root, ["status", "--limit", "2", "--json"]));
+    expect((json2.runs as { id: string }[]).map((run) => run.id)).toEqual(byAge.slice(0, 2));
+  });
+
+  it("--limit at or above the number of runs shows all of them without a note", async () => {
+    const { root, byAge } = await runsWithUpdateTimes(2);
+    for (const limit of ["2", "10"]) {
+      const result = await cli(root, ["status", "--limit", limit]);
+      expect(listedIds(result)).toEqual(byAge);
+      expect(result.stdout).not.toContain("not shown");
+    }
+  });
+
+  it("--limit must be a positive integer", async () => {
+    const root = await workspace();
+    for (const value of ["0", "-1", "abc", "1.5"]) {
+      const result = await cli(root, ["status", "--limit", value]);
+      expect(result.code, value).toBe(ExitCode.UsageError);
+      expect(result.stderr).toContain("expected a positive integer");
+    }
+  });
+});

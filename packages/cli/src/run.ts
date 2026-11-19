@@ -569,9 +569,14 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<ExitCo
     .command("status")
     .description("list the runs of this workspace, or show one")
     .argument("[run]", "run id")
+    .option("--limit <n>", "list only the n most recent runs", positiveInteger)
     .option("--json", "print a machine-readable result")
-    .action(async (run: string | undefined, options: { json?: boolean }) => {
-      exitCode = await statusCommand(run, { json: options.json === true }, io);
+    .action(async (run: string | undefined, options: { limit?: number; json?: boolean }) => {
+      exitCode = await statusCommand(
+        run,
+        { json: options.json === true, limit: options.limit },
+        io,
+      );
     });
 
   program

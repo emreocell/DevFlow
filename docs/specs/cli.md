@@ -293,7 +293,7 @@ devflow reject  <run> (--feedback <text> | --feedback-file <file>) [model option
 devflow answer  <run> (--answer <id>=<text> ... | --file <answers.yaml>) [model options]
 devflow resume  <run> [model options] [--allow <fingerprint> ...] [--backend local|container]
 devflow cancel  <run> [--reason <text>] [--trace <targets>] [--json]
-devflow status  [run] [--json]
+devflow status  [run] [--limit <n>] [--json]
 devflow report  <run> [--json] [--publish [comment|check]]
 devflow pr create <run> [--repo <owner/name>] [--base <branch>] [--title <text>] [--yes] [--json]
 ```
@@ -517,8 +517,10 @@ dryRun: true, wouldCreate, wouldKeep, gitignore, config }`, where `gitignore` is
   open. An answers file maps question ids to text: `Q-1: Pages start at 1`.
 - **`resume`** continues an interrupted run from its current step. `--max-*` raise the run's
   limits, `--model` and `--provider` replace them. A waiting or finished run is shown unchanged.
-- **`status`** lists the runs, oldest first, or shows one run with its state, settings, usage,
-  warnings and next step. **`report`** prints `report.md` (or `report.json` with `--json`) of a
+- **`status`** lists the runs, newest first (by last update), or shows one run with its state,
+  settings, usage, warnings and next step. `--limit <n>` (a positive integer) keeps only the `n`
+  newest runs, in text and JSON output; in text output a final line says how many older runs
+  were left out. **`report`** prints `report.md` (or `report.json` with `--json`) of a
   finished run, and exits 1 for a run that has not finished; `--publish` sends it to its pull
   request (see `review --pr`).
 - Progress lines are written to stderr; with `--json`, stdout holds one JSON document:

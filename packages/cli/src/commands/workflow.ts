@@ -488,16 +488,20 @@ export async function cancelCommand(
   });
 }
 
-/** `devflow status [run]`: list runs, or show one. */
+/** `devflow status [run]`: list runs, newest first, or show one. */
 export async function statusCommand(
   runId: string | undefined,
-  options: { json: boolean },
+  options: { json: boolean; limit?: number | undefined },
   io: CliIo,
 ): Promise<ExitCode> {
   return guarded(io, options.json, async () => {
     const workspace = await openWorkspace(io);
     if (runId === undefined) {
-      const runs = await listRuns(workspace.root);
+      const all = await listRuns(workspace.root);
+      all.sort(
+        (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || b.id.localeCompare(a.id),
+      );
+      const runs = options.limit === undefined ? all : all.slice(0, options.limit);
       if (options.json) {
         writeJson(io, {
           runs: runs.map((run) => ({
@@ -519,6 +523,12 @@ export async function statusCommand(
         for (const run of runs) {
           io.stdout.write(
             `${run.id}  ${stateLabel(run.state, c)}  ${run.mode}/${run.goal}  ${run.task.title}\n`,
+          );
+        }
+        const hidden = all.length - runs.length;
+        if (hidden > 0) {
+          io.stdout.write(
+            `(${String(hidden)} older run${hidden === 1 ? "" : "s"} not shown; use --limit to see more)\n`,
           );
         }
       }
